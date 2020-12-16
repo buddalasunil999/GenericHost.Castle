@@ -2,8 +2,20 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Title>GenericHost.Castle</Title>
+    <Description>Create console application with configuration and castle dependency injection</Description>
+    <Configuration></Configuration>
+    <Company>DonateKart</Company>
+    <Visibility>false</Visibility>
+    <Guid>7KD3E068-7V1U-47TB-A759-C89B21645113</Guid>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0.0</Version>
+    <InformationalVersion>1.0.0.0</InformationalVersion>
+    <Authors>Sunil Buddala</Authors>
+    <RepositoryUrl>https://github.com/buddalasunil999/GenericHost.Castle</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/buddalasunil999/GenericHost.Castle</PackageProjectUrl>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Castle.Windsor.MsDependencyInjection" Version="3.3.1" />
     <PackageReference Include="Cqrs.Simple.Castle" Version="2.1.2" />
