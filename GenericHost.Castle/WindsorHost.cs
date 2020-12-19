@@ -13,7 +13,7 @@ namespace GenericHost.Castle
 {
     public class WindsorHost
     {
-        private readonly WindsorContainer container = new WindsorContainer();
+        private readonly WindsorContainer windsorContainer = new WindsorContainer();
         private readonly IEnumerable<IWindsorInstaller> assemblies;
         private readonly string[] args;
         private IHostBuilder hostBuilder;
@@ -24,7 +24,7 @@ namespace GenericHost.Castle
             this.args = args;
         }
 
-        public IHostBuilder CreateBuilder(string environmentPrefix, Action<IConfiguration, WindsorContainer> registerDependencies)
+        public IHostBuilder CreateBuilder(string environmentPrefix, Action<IConfiguration, WindsorContainer> registerDependencies = null)
         {
             hostBuilder = Host.CreateDefaultBuilder(args);
             hostBuilder.ConfigureAppConfiguration((hostingContext, configuration) =>
@@ -42,14 +42,20 @@ namespace GenericHost.Castle
 
                 IConfigurationRoot configurationRoot = configuration.Build();
             })
-            .UseServiceProviderFactory(new ServiceContainerFactory(container))
+            .UseServiceProviderFactory(new ServiceContainerFactory(windsorContainer))
             .ConfigureContainer<ServiceContainer>((hostContext, container) =>
             {
-                this.container.Kernel.Resolver.AddSubResolver(new ArrayResolver(this.container.Kernel, true));
-                this.container.Kernel.Resolver.AddSubResolver(new CollectionResolver(this.container.Kernel, true));
+                this.windsorContainer.Kernel.Resolver.AddSubResolver(new ArrayResolver(this.windsorContainer.Kernel, true));
+                this.windsorContainer.Kernel.Resolver.AddSubResolver(new CollectionResolver(this.windsorContainer.Kernel, true));
 
-                this.container.Install(assemblies.ToArray());
-                registerDependencies(hostContext.Configuration, this.container);
+                this.windsorContainer.Install(assemblies.ToArray());
+                this.windsorContainer.Register(Component.For<IConfiguration>()
+                    .Instance(hostContext.Configuration));
+
+                if (registerDependencies != null)
+                {
+                    registerDependencies(hostContext.Configuration, this.windsorContainer);
+                }
             })
             .UseConsoleLifetime();
 
@@ -64,9 +70,9 @@ namespace GenericHost.Castle
                 {
                     try
                     {
-                        using (container)
+                        using (windsorContainer)
                         {
-                            using (var scope = container.BeginScope())
+                            using (var scope = windsorContainer.BeginScope())
                             {
                                 Console.WriteLine("Started");
                                 await host.RunAsync();
