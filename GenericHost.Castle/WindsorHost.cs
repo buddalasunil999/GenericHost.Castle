@@ -48,9 +48,9 @@ namespace GenericHost.Castle
                 this.windsorContainer.Kernel.Resolver.AddSubResolver(new ArrayResolver(this.windsorContainer.Kernel, true));
                 this.windsorContainer.Kernel.Resolver.AddSubResolver(new CollectionResolver(this.windsorContainer.Kernel, true));
 
-                this.windsorContainer.Install(assemblies.ToArray());
                 this.windsorContainer.Register(Component.For<IConfiguration>()
                     .Instance(hostContext.Configuration));
+                this.windsorContainer.Install(assemblies.ToArray());
 
                 if (registerDependencies != null)
                 {
