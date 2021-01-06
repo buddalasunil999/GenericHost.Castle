@@ -2,11 +2,13 @@
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers.SpecializedResolvers;
 using Castle.Windsor;
+using Castle.Windsor.Installer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace GenericHost.Castle
@@ -14,17 +16,16 @@ namespace GenericHost.Castle
     public class WindsorHost
     {
         private readonly WindsorContainer windsorContainer = new WindsorContainer();
-        private readonly IEnumerable<IWindsorInstaller> assemblies;
-        private readonly string[] args;
+        private readonly Assembly[] assemblies;
         private IHostBuilder hostBuilder;
 
-        public WindsorHost(IEnumerable<IWindsorInstaller> assemblies, string[] args)
+        public WindsorHost(params Assembly[] assemblies)
         {
             this.assemblies = assemblies;
-            this.args = args;
         }
 
-        public IHostBuilder CreateBuilder(string environmentPrefix, Action<IConfiguration, WindsorContainer> registerDependencies = null)
+        public IHostBuilder CreateBuilder(string environmentPrefix, string[] args,
+            Action<IConfiguration, WindsorContainer> registerDependencies = null)
         {
             hostBuilder = Host.CreateDefaultBuilder(args);
             hostBuilder.ConfigureAppConfiguration((hostingContext, configuration) =>
@@ -45,21 +46,30 @@ namespace GenericHost.Castle
             .UseServiceProviderFactory(new ServiceContainerFactory(windsorContainer))
             .ConfigureContainer<ServiceContainer>((hostContext, container) =>
             {
-                this.windsorContainer.Kernel.Resolver.AddSubResolver(new ArrayResolver(this.windsorContainer.Kernel, true));
-                this.windsorContainer.Kernel.Resolver.AddSubResolver(new CollectionResolver(this.windsorContainer.Kernel, true));
+                windsorContainer.Kernel.Resolver.AddSubResolver(new ArrayResolver(windsorContainer.Kernel, true));
+                windsorContainer.Kernel.Resolver.AddSubResolver(new CollectionResolver(windsorContainer.Kernel, true));
 
-                this.windsorContainer.Register(Component.For<IConfiguration>()
+                windsorContainer.Register(Component.For<IConfiguration>()
                     .Instance(hostContext.Configuration));
-                this.windsorContainer.Install(assemblies.ToArray());
+                windsorContainer.Install(GetAssemblies().ToArray());
 
                 if (registerDependencies != null)
                 {
-                    registerDependencies(hostContext.Configuration, this.windsorContainer);
+                    registerDependencies(hostContext.Configuration, windsorContainer);
                 }
             })
             .UseConsoleLifetime();
 
             return hostBuilder;
+        }
+
+        private IEnumerable<IWindsorInstaller> GetAssemblies()
+        {
+            yield return FromAssembly.InThisApplication(Assembly.GetEntryAssembly());
+            foreach (var assembly in assemblies)
+            {
+                yield return FromAssembly.Instance(assembly);
+            }
         }
 
         public async Task Run()
