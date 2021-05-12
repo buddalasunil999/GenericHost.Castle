@@ -1,0 +1,58 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+  - main
+
+pool:
+  vmImage: Hosted Ubuntu 1604
+
+variables:
+  buildConfiguration: "Release"
+
+name: "$(BuildDefinitionName)_$(Year:yyyy).$(Month).$(DayOfMonth)$(Rev:.r)"
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: Restore
+  inputs:
+    command: restore
+    projects: '$(Parameters.RestoreBuildProjects)'
+  enabled: false
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    projects: '$(Parameters.RestoreBuildProjects)'
+    arguments: '--configuration $(BuildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: Test
+  inputs:
+    command: test
+    projects: '$(Parameters.TestProjects)'
+    arguments: '--configuration $(BuildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet pack'
+  inputs:
+    command: pack
+    packagesToPack: GenericHost.Castle/GenericHost.Castle.csproj
+    nobuild: true
+    versioningScheme: byEnvVar
+    versionEnvVar: VersionNumber
+
+- task: NuGetCommand@2
+  displayName: 'NuGet package push - nuget.org'
+  inputs:
+    command: push
+    nuGetFeedType: external
+    publishFeedCredentials: NugetServer
+
+- task: NuGetCommand@2
+  displayName: "NuGet package push - artifacts"
+  inputs:
+    command: push
+    publishVstsFeed: "44a39daa-4ef7-44f6-9a6d-1758786062ba"

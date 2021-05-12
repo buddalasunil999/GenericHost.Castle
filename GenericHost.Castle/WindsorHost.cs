@@ -2,13 +2,11 @@
 using Castle.MicroKernel.Registration;
 using Castle.MicroKernel.Resolvers.SpecializedResolvers;
 using Castle.Windsor;
-using Castle.Windsor.Installer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace GenericHost.Castle
@@ -16,12 +14,12 @@ namespace GenericHost.Castle
     public class WindsorHost
     {
         private readonly WindsorContainer windsorContainer = new WindsorContainer();
-        private readonly Assembly[] assemblies;
+        private readonly Func<IEnumerable<IWindsorInstaller>> getAssemblies;
         private IHostBuilder hostBuilder;
 
-        public WindsorHost(params Assembly[] assemblies)
+        public WindsorHost(Func<IEnumerable<IWindsorInstaller>> getAssemblies)
         {
-            this.assemblies = assemblies;
+            this.getAssemblies = getAssemblies;
         }
 
         public IHostBuilder CreateBuilder(string environmentPrefix, string[] args,
@@ -51,25 +49,16 @@ namespace GenericHost.Castle
 
                 windsorContainer.Register(Component.For<IConfiguration>()
                     .Instance(hostContext.Configuration));
-                windsorContainer.Install(GetAssemblies().ToArray());
-
-                if (registerDependencies != null)
+                if (getAssemblies != null)
                 {
-                    registerDependencies(hostContext.Configuration, windsorContainer);
+                    windsorContainer.Install(getAssemblies().ToArray());
                 }
+
+                registerDependencies?.Invoke(hostContext.Configuration, windsorContainer);
             })
             .UseConsoleLifetime();
 
             return hostBuilder;
-        }
-
-        private IEnumerable<IWindsorInstaller> GetAssemblies()
-        {
-            yield return FromAssembly.InThisApplication(Assembly.GetEntryAssembly());
-            foreach (var assembly in assemblies)
-            {
-                yield return FromAssembly.Instance(assembly);
-            }
         }
 
         public async Task Run()
