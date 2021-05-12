@@ -7,7 +7,7 @@ trigger:
   - main
 
 pool:
-  vmImage: Default
+  vmImage: Hosted Ubuntu 1604
 
 variables:
   buildConfiguration: "Release"
